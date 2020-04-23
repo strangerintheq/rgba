@@ -58,8 +58,10 @@ void main(void) {
     // uniforms
     Object.keys(config.uniforms).forEach(uf => {
         let location = gl.getUniformLocation(program, uf);
-        let func = gl[`uniform${config.uniforms[uf]}`];
-        this[uf] = v => func.call(gl, location, ...v);
+        let type = config.uniforms[uf];
+        let func = gl[`uniform${type}`];
+        this[uf] = '1f' === type ? v => func.call(gl, location, v)
+                                 : v => func.call(gl, location, ...v);
     });
 
     // textures
@@ -124,6 +126,7 @@ void main(void) {
     if (false !== config.loop) {
         let drawFrame = t => {
             this.time([t/1000]);
+            config.frame && config.frame(t)
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             requestAnimationFrame(drawFrame);
         };
