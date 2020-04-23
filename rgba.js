@@ -11,10 +11,7 @@ function RGBA(mainCode, props) {
     config.uniforms.resolution = '2f';
 
     config.vertexShader = config.vertexShader || `attribute vec2 vert;
-
-void main(void) {
-    gl_Position = vec4(vert, 0.0, 1.0);
-}`;
+        void main(void) { gl_Position = vec4(vert, 0.0, 1.0);}`;
 
     if (config.mainCode.indexOf('void main(void)') === -1)
         config.mainCode = `\nvoid main(void) {\n${config.mainCode}\n}`;
@@ -55,13 +52,24 @@ void main(void) {
     gl.linkProgram(program);
     gl.useProgram(program);
 
+    let frameCallbacks = config.frame ? [config.frame] : [];
     // uniforms
     Object.keys(config.uniforms).forEach(uf => {
-        let location = gl.getUniformLocation(program, uf);
+        let loc = gl.getUniformLocation(program, uf);
         let type = config.uniforms[uf];
-        let func = gl[`uniform${type}`];
-        this[uf] = '1f' === type ? v => func.call(gl, location, v)
-                                 : v => func.call(gl, location, ...v);
+        let isFunc = typeof type === 'function';
+        if (isFunc)
+            type = (Array.isArray(type(0)) ? type(0).length : 1) + 'f';
+        let f = gl[`uniform${type}`];
+        this[uf] = '1f' === type ? v => f.call(gl, loc, v) : v => f.call(gl, loc, ...v);
+        if (!isFunc)
+            return
+        let val;
+        frameCallbacks.push(t => {
+            let newVal = config.uniforms[uf](val, t);
+            newVal !== val && this[uf](val = newVal);
+        });
+        this[uf](val = config.uniforms[uf](0));
     });
 
     // textures
@@ -70,10 +78,15 @@ void main(void) {
             gl.getUniformLocation(program, 'tex'),
             config.textures.map((_,i) => i));
 
-        config.textures.forEach((urlOrSvg, index) => {
+        config.textures.forEach((url, index) => {
             let loader = new Image();
             loader.crossOrigin = "anonymous";
-            loader.src = urlOrSvg;
+            if(url.indexOf('svg') > -1) {
+                if (url.indexOf('xmlns') === -1)
+                    url = url.split('<svg ').join(`<svg xmlns="http://www.w3.org/2000/svg" `)
+                url = "data:image/svg+xml;base64," + btoa(url);
+            }
+            loader.src = url;
             loader.onload = function () {
                 let texture = gl.createTexture();
                 gl.activeTexture(gl.TEXTURE0 + index);
@@ -125,8 +138,8 @@ void main(void) {
 
     if (false !== config.loop) {
         let drawFrame = t => {
-            this.time([t/1000]);
-            config.frame && config.frame(t)
+            this.time(t/1000);
+            frameCallbacks.forEach(cb => cb(t));
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             requestAnimationFrame(drawFrame);
         };

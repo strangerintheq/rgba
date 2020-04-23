@@ -3,42 +3,32 @@
 <body>
     <script src="rgba.js"></script>
     <script>
-        let target = 0, value = 0;
-        let rgba = new RGBA(`
+        let to = 1;
+        RGBA(`
             vec2 uv = gl_FragCoord.xy / resolution;
             vec4 c0 = texture2D(tex[0], uv);
-            vec4 c1 = texture2D(tex[1], uv);
-            float grayscale = dot(c1.rgb, vec3(0.299, 0.587, 0.114));
-            vec4 c2 = vec4(vec3(grayscale), 1.);
-            float v = c0.r;
-            v = v + value*2. - 1.0;
-            v = clamp(v, 0.0, 1.0);
-            if (abs(v - 0.5) < 0.005) {
+            float v = clamp(c0.r + val - 0.5, 0.0, 1.0);
+            if (abs(v - 0.5) < 0.01 + 0.02*c0.a) {
                 gl_FragColor = vec4(c0.rgb, 1.0);
             } else {
-                v = sign(v - 0.5);
-                v = v/2.0 + 0.5;
-                gl_FragColor = mix(c2, c1, v);
+                vec4 c1 = texture2D(tex[1], uv);
+                vec4 c = vec4(vec3(dot(c1.rgb, vec3(0.299, 0.587, 0.114))), 1.);
+                gl_FragColor = mix(c, c1, sign(v - 0.5)/2.0 + 0.5);
             }
         `, {
-            frame: function(t) {
-                rgba.value([value = Math.max(0, Math.min(1, value += (target-0.5)/100))]);
+            uniforms: {
+                val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50))
             },
-            uniforms: { value: '1f'},
             textures: [
-                "data:image/svg+xml;base64," + btoa(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="${innerWidth}px" height="${innerHeight}px">
-                        <filter id="noise">
-                            <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="13" />
-                        </filter>
-                        <circle r="5000" filter="url(#noise)"></circle>
-                    </svg>
-                `),
+                `<svg width="${innerWidth}px" height="${innerHeight}px">
+                    <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="13" /></filter>
+                    <circle r="5000" filter="url(#n)"></circle>
+                </svg>`,
                 `https://picsum.photos/id/155/${innerWidth}/${innerHeight}`,
             ]
         });
-        addEventListener('mouseover', () => target = 1)
-        addEventListener('mouseout', () => target = 0)
+        addEventListener('mouseover', () => to = 1);
+        addEventListener('mouseout', () => to = 0);
     </script>
 </body>
 </html>
