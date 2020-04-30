@@ -71,15 +71,21 @@ function RGBA(mainCode, props) {
         requestAnimationFrame(drawFrame);
     }
 
+    function detectUniformType(uf, cfg) {
+        let name = cfg.uniforms[uf];
+        let isFunc = typeof name === 'function';
+        if (isFunc)
+            name = (Array.isArray(name(0)) ? name(0).length : 1) + 'f';
+        return {name, isFunc, isArray: '1f' !== name}
+    }
+
     function handleUniform(uf) {
         let loc = gl.getUniformLocation(program, uf);
-        let type = config.uniforms[uf];
-        let isFunc = typeof type === 'function';
-        if (isFunc)
-            type = (Array.isArray(type(0)) ? type(0).length : 1) + 'f';
-        let f = gl[`uniform${type}`];
-        this[uf] = '1f' === type ? v => f.call(gl, loc, v) : v => f.call(gl, loc, ...v);
-        if (!isFunc)
+        let type = detectUniformType(uf, config);
+        let setter = gl[`uniform${type.name}`];
+        this[uf] = type.isArray ? v => setter.call(gl, loc, ...v)
+            : v => setter.call(gl, loc, v);
+        if (!type.isFunc)
             return
         let val;
         frameCallbacks.push(t => {
@@ -112,13 +118,11 @@ function RGBA(mainCode, props) {
 
     function createFragmentShader(cfg) {
         cfg.fragmentShader = '\n' + Object.keys(cfg.uniforms).map(uf => {
-            let type = cfg.uniforms[uf][0];
+            let type = detectUniformType(uf, cfg).name[0];
             return `uniform ${type - 1 ? 'vec' + type : 'float'} ${uf};`;
         }).join('\n') + '\n';
-
-        if (cfg.textures)
+        if (cfg.textures && cfg.textures.length)
             cfg.fragmentShader += `\nuniform sampler2D tex[${cfg.textures.length}];\n`;
-
         cfg.fragmentShader += cfg.mainCode;
     }
 
@@ -130,15 +134,12 @@ function RGBA(mainCode, props) {
         cfg.uniforms.resolution = '2f';
         cfg.vertexShader = cfg.vertexShader ||
             `attribute vec2 vert;\nvoid main(void) { gl_Position = vec4(vert, 0.0, 1.0);}`;
-
         if (cfg.mainCode.indexOf('void main()') === -1)
             cfg.mainCode = `\nvoid main() {\n${cfg.mainCode}\n}`;
-
         if (!cfg.fragmentShader)
             createFragmentShader(cfg);
-
-        cfg.fragmentShader = `precision ${cfg.precision || 'mediump'} float;\n` + cfg.fragmentShader;
-
+        if (cfg.fragmentShader.trim().indexOf('precision') !== 0)
+            cfg.fragmentShader = `precision ${cfg.precision || 'highp'} float;\n` + cfg.fragmentShader;
         return cfg
     }
 
@@ -147,11 +148,11 @@ function RGBA(mainCode, props) {
         gl.shaderSource(id, src);
         gl.compileShader(id);
         let message = gl.getShaderInfoLog(id);
-        gl.attachShader(program, id);
-        if (message.length > 0 || config.debug)
+        if (message || config.debug)
             console.log(src.split('\n').map(print).join('\n'));
-        if (message.length > 0)
+        if (message)
             throw message;
+        gl.attachShader(program, id);
     }
 
     function print(str, i) {

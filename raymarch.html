@@ -1,120 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <body>
-    <script src="rgba.js"></script>
-    <script>var module = {};</script>
-    <script src="https://raw.githack.com/mapbox/tiny-sdf/master/index.js"></script>
-    <script>
-        let eye = [3,3,0]
+<script src="rgba.js"></script>
+<script>
+    var module = {};
 
+    function makeSdf(char) {
         let tinySDFGenerator = new TinySDF(
             24, 3, 8, 0.25, 'sans-serif', 'normal');
-
-        let oneSDF = tinySDFGenerator.draw('泽');
-        let sdf = document.createElement('canvas');
-        let size = sdf.width = sdf.height = Math.sqrt(oneSDF.length);
-        let ctx = sdf.getContext('2d');
+        let sdf = tinySDFGenerator.draw(char);
+        let image = document.createElement('canvas');
+        let size = image.width = image.height = Math.sqrt(sdf.length);
+        let ctx = image.getContext('2d');
         let sdfData = ctx.createImageData(size, size), d = sdfData.data;
-        for (let i = 0; i < oneSDF.length*4; i += 4)
-            d[i] = d[i+1] = d[i+2] = d[i+3] = oneSDF[i];
+        for (let i = 0; i < sdf.length * 4; i += 4)
+            d[i] = d[i + 1] = d[i + 2] = d[i + 3] = sdf[i];
         ctx.putImageData(sdfData, 0, 0);
-
-        RGBA(`
-
-    float thorus(in vec3 p, float size){
-        float d;
-        vec3 q = p;
-        q.xz = vec2(length(q.xz), q.z) - 1.5;
-        d = dot(q.xy, q.xy);
-        float a = atan(p.x, p.z);
-        return sqrt(d) - size
-            - sin(a*17.-time)*0.01
-            + sin(a*11.+time)*0.02
-            + sin(a*9.+time*2.)*0.02;
+        return image;
+    }
+</script>
+<script src="https://raw.githack.com/mapbox/tiny-sdf/master/index.js"></script>
+<script>
+    let  orbit = {
+        eye: [3,3,3]
     }
 
-    vec2 map(in vec3 p) {
-        float d = thorus(p, 0.1);
-        vec2 result = vec2(d, .1);
-        return result;
-    }
-
-    vec3 normal( in vec3 p ){
-        vec2 e = vec2(0.005, -0.005);
-        return normalize(e.xyy * map(p + e.xyy).x +
-                         e.yyx * map(p + e.yyx).x +
-                         e.yxy * map(p + e.yxy).x +
-                         e.xxx * map(p + e.xxx).x);
-    }
-
-    mat4 viewMatrix(vec3 eye, vec3 center) {
-        vec3 up = vec3(0.0, 1.0, 0.0);
-        vec3 f = normalize(center - eye);
-        vec3 s = normalize(cross(f, up));
-        return mat4(
-            vec4(s, 0.0),
-            vec4(cross(s, f), 0.0),
-            vec4(-f, 0.0),
-            vec4(0.0, 0.0, 0.0, 1)
-        );
-    }
-
-    vec3 rayDirection(float fieldOfView, vec2 size) {
-        vec2 xy = gl_FragCoord.xy - size / 2.0;
-        float z = size.y / tan(radians(fieldOfView) / 2.0);
-        return normalize(vec3(xy, -z));
-    }
-
-    vec3 worldDir(float fov, vec2 resolution, vec3 eye, vec3 lookAt) {
-        vec3 direction = rayDirection(fov, resolution);
-        mat4 viewToWorld = viewMatrix(eye, lookAt);
-        return (viewToWorld * vec4(direction, 0.0)).xyz;
-    }
-
-    vec3 hsl2rgb( in vec3 c ){
-        vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
-        return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
-    }
-
-    void main() {
-        vec3 eye = vec3(eyeX, eyeY, eyeZ);
-        vec3 forward = vec3(0.,0.,0.);
-        vec3 ro = eye;
-        vec3 rd = worldDir(90., resolution, ro, forward);
-        vec3 lp = ro + vec3(0.2, 0.5, -0.5);
-        float t = 0.;
-        vec2 result;
-        for(int i = 0; i<128; i++){
-            result = map(ro + rd*t);
-            if (result.x<.001*(t*.25 + 1.) || t>40.)
-                break;
-            t += result.x*.65;
+    RGBA(`
+        float thorus(in vec3 p, float size){
+            float d;
+            vec3 q = p;
+            q.xz = vec2(length(q.xz), q.z) - 1.5;
+            d = dot(q.xy, q.xy);
+            float a = atan(p.x, p.z);
+            return sqrt(d) - size
+                - sin(a*17.-time)*0.01
+                + sin(a*11.+time)*0.02
+                + sin(a*9.+time*2.)*0.02;
         }
-        vec3 sp = ro + rd*t;
-        vec3 sn = normal(sp);
-        vec3 ld = lp - sp;
-        float lDist = max(length(ld), 0.001);
-        ld /= lDist;
-        float diff = max(dot(ld, sn), 0.);
 
-        vec3 col = vec3(atan(sp.z, sp.x)/3.14,0.6,0.7);
-        col = hsl2rgb(col);
-        col *= (sin(sp)/2.+1.);
-        gl_FragColor = vec4(vec3(diff)*col, 1.0);
-    }
-`, {
-            uniforms: {
-                eyeX: () => eye[0],
-                eyeY: () => eye[1],
-                eyeZ: () => eye[2],
-            },
-            textures: [
-                sdf
-            ]
-        })
+        vec2 map(in vec3 p) {
+            float d = thorus(p, 0.1);
+            vec2 result = vec2(d, .1);
+            return result;
+        }
+
+        vec3 normal( in vec3 p ){
+            vec2 e = vec2(0.005, -0.005);
+            return normalize(e.xyy * map(p + e.xyy).x +
+                             e.yyx * map(p + e.yyx).x +
+                             e.yxy * map(p + e.yxy).x +
+                             e.xxx * map(p + e.xxx).x);
+        }
+
+        mat4 viewMatrix(vec3 eye, vec3 center) {
+            vec3 up = vec3(0.0, 1.0, 0.0);
+            vec3 f = normalize(center - eye);
+            vec3 s = normalize(cross(f, up));
+            return mat4(
+                vec4(s, 0.0),
+                vec4(cross(s, f), 0.0),
+                vec4(-f, 0.0),
+                vec4(0.0, 0.0, 0.0, 1)
+            );
+        }
+
+        vec3 rayDirection(float fieldOfView, vec2 size) {
+            vec2 xy = gl_FragCoord.xy - size / 2.0;
+            float z = size.y / tan(radians(fieldOfView) / 2.0);
+            return normalize(vec3(xy, -z));
+        }
+
+        vec3 worldDir(float fov, vec2 resolution, vec3 eye, vec3 lookAt) {
+            vec3 direction = rayDirection(fov, resolution);
+            mat4 viewToWorld = viewMatrix(eye, lookAt);
+            return (viewToWorld * vec4(direction, 0.0)).xyz;
+        }
+
+        vec3 hsl2rgb( in vec3 c ){
+            vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
+            return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
+        }
+
+        void main() {
+            vec3 forward = vec3(0.,0.,0.);
+            vec3 ro = eye;
+            vec3 rd = worldDir(90., resolution, ro, forward);
+            vec3 lp = ro + vec3(0.2, 0.5, -0.5);
+            float t = 0.;
+            vec2 result;
+            for(int i = 0; i<128; i++){
+                result = map(ro + rd*t);
+                if (result.x<.001*(t*.25 + 1.) || t>40.)
+                    break;
+                t += result.x*.65;
+            }
+            vec3 sp = ro + rd*t;
+            vec3 sn = normal(sp);
+            vec3 ld = lp - sp;
+            float lDist = max(length(ld), 0.001);
+            ld /= lDist;
+            float diff = max(dot(ld, sn), 0.);
+
+            vec3 col = vec3(atan(sp.z, sp.x)/3.14,0.6,0.7);
+            col = hsl2rgb(col);
+            col *= (sin(sp)/2.+1.);
+            gl_FragColor = vec4(vec3(diff)*col, 1.0);
+        }
+    `, {
+        debug: 1,
+        uniforms: {
+            eye: () => orbit.eye
+        },
+        textures: [
+            makeSdf('A')
+        ]
+    })
 
 
 
-    </script>
+</script>
 </body>
 </html>
