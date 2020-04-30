@@ -2,6 +2,7 @@
 <html lang="en">
 <body>
 <script src="rgba.js"></script>
+<script src="mouse.js"></script>
 <script>
     var module = {};
 
@@ -21,9 +22,7 @@
 </script>
 <script src="https://raw.githack.com/mapbox/tiny-sdf/master/index.js"></script>
 <script>
-    let  orbit = {
-        eye: [3,3,3]
-    }
+    let orbit = new OrbitControls()
 
     RGBA(`
         float thorus(in vec3 p, float size){
@@ -115,9 +114,6 @@
             makeSdf('A')
         ]
     })
-
-
-
 </script>
 </body>
 </html>

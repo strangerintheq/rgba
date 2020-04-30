@@ -1,5 +1,5 @@
 function RGBA(mainCode, props) {
-
+    // shaders
     let config = prepareConfig(props);
     let canvas = config.target || document.createElement('canvas');
     let gl = this.gl = canvas.getContext("webgl");
@@ -7,32 +7,14 @@ function RGBA(mainCode, props) {
     [config.vertexShader, config.fragmentShader].forEach(createShader);
     gl.linkProgram(program);
     gl.useProgram(program);
-
+    // uniforms
     let frameCallbacks = config.frame ? [config.frame] : [];
-
     Object.keys(config.uniforms).forEach(handleUniform);
-
-    if (config.textures) {
-        gl.uniform1iv(
-            gl.getUniformLocation(program, 'tex'),
-            config.textures.map((_,i) => i));
-
-        config.textures.forEach((source, index) => {
-            if (typeof source === "string") {
-                let loader = new Image();
-                loader.crossOrigin = "anonymous";
-                loader.src = svgSupport(source);
-                loader.onload = () => createTexture(index, loader);
-            } else {
-                createTexture(index, source)
-            }
-        });
-    }
-
+    handleTextures();
+    // vertices
     let triangle = new Float32Array([-1, 3, -1, -1, 3, -1]);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, triangle, gl.STATIC_DRAW);
-
     let vert = gl.getAttribLocation(program, "vert");
     gl.vertexAttribPointer(vert, 2, gl.FLOAT, 0, 0, 0);
     gl.enableVertexAttribArray(vert);
@@ -59,8 +41,6 @@ function RGBA(mainCode, props) {
         this.newSize(canvas.width, canvas.height);
     }
 
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-
     if (false !== config.loop) {
         let drawFrame = t => {
             this.time(t/1000);
@@ -69,6 +49,8 @@ function RGBA(mainCode, props) {
             requestAnimationFrame(drawFrame);
         };
         requestAnimationFrame(drawFrame);
+    } else {
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
     function detectUniformType(uf, cfg) {
@@ -83,14 +65,15 @@ function RGBA(mainCode, props) {
         let loc = gl.getUniformLocation(program, uf);
         let type = detectUniformType(uf, config);
         let setter = gl[`uniform${type.name}`];
-        this[uf] = type.isArray ? v => setter.call(gl, loc, ...v)
-            : v => setter.call(gl, loc, v);
+        this[uf] = type.isArray ?
+                v => setter.call(gl, loc, ...v) :
+                v => setter.call(gl, loc, v);
         if (!type.isFunc)
             return
         let val;
         frameCallbacks.push(t => {
             let newVal = config.uniforms[uf](val, t);
-            newVal !== val && this[uf](val = newVal);
+            this[uf](val = newVal); // todo compare values
         });
         this[uf](val = config.uniforms[uf](0));
     }
@@ -157,5 +140,25 @@ function RGBA(mainCode, props) {
 
     function print(str, i) {
         return ("" + (1 + i)).padStart(4, "0") + ": " + str
+    }
+
+    function handleTextures() {
+        if (!config.textures)
+            return
+
+        gl.uniform1iv(
+            gl.getUniformLocation(program, 'tex'),
+            config.textures.map((_,i) => i));
+
+        config.textures.forEach((source, index) => {
+            if (typeof source === "string") {
+                let loader = new Image();
+                loader.crossOrigin = "anonymous";
+                loader.src = svgSupport(source);
+                loader.onload = () => createTexture(index, loader);
+            } else {
+                createTexture(index, source)
+            }
+        });
     }
 }
