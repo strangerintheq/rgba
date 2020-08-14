@@ -4,9 +4,13 @@
  
  
  
- this mini library focusing on hiding webgl/javascript code from you and giving ablility to write only fragment shader code
+ focusing on hiding webgl/javascript code from you 
  
- first created for using in my codepen experiments https://codepen.io/strangerintheq
+ and giving ablility to write fragment shader code only
+ 
+ first created for using in my codepen experiments 
+
+ https://codepen.io/strangerintheq
 
 
 
@@ -14,6 +18,8 @@
 ---
 
 ## features
+
+ - texture loading (including svg)
 
 
  - 2 embedded uniforms (`float time` and `vec2 resolution`)
