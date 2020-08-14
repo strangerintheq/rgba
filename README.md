@@ -41,6 +41,9 @@
 
 ## basic usage
 
+
+first argument passing to `RGBA` function is a fragment shader source code
+
     <script src="https://rawcdn.githack.com/strangerintheq/rgba/0.0.4/rgba.js"></script>
     <script>
         RGBA(`
@@ -54,6 +57,31 @@ this code is using `resolution` uniform added by library code:
     uniform vec2 resolution; // screen resolution
 
 
+---
+
+## textures
+
+second argument passing to `RGBA` function is a settings holder object
+
+field `textures` is an `Array` of textures urls mapped to auto provided `sampler2D[]` unform array `tex`
+
+
+
+
+    <script src="https://rawcdn.githack.com/strangerintheq/rgba/0.0.4/rgba.js"></script>
+    <script>
+        RGBA(`
+            vec2 uv = gl_FragCoord.xy / resolution;
+            vec4 c0 = texture2D(tex[0], uv);
+            vec4 c1 = texture2D(tex[1], uv);
+            gl_FragColor = mix(c0, c1, sin(time)*0.5 + 0.5);
+        `, { 
+            textures: [
+                'https://picsum.photos/id/1/800/600',
+                'https://picsum.photos/id/3/800/600',
+            ]
+        });
+    </script>
 
 
 
