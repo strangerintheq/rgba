@@ -7,10 +7,12 @@ function RGBA(mainCode, props) {
     [config.vertexShader, config.fragmentShader].forEach(createShader);
     gl.linkProgram(program);
     gl.useProgram(program);
+
     // uniforms
     let frameCallbacks = config.frame ? [config.frame] : [];
     Object.keys(config.uniforms).forEach(handleUniform);
     handleTextures();
+
     // vertices
     let triangle = new Float32Array([-1, 3, -1, -1, 3, -1]);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
@@ -18,6 +20,41 @@ function RGBA(mainCode, props) {
     let vert = gl.getAttribLocation(program, "vert");
     gl.vertexAttribPointer(vert, 2, gl.FLOAT, 0, 0, 0);
     gl.enableVertexAttribArray(vert);
+
+    let capturer;
+
+    if (config.record) {
+        const s = document.createElement('script');
+        s.setAttribute('src','https://raw.githack.com/spite/ccapture.js/master/build/CCapture.all.min.js');
+        document.body.append(s);
+        document.body.innerHTML += `
+            <button id="recButton" style="position:fixed;top:5px;right:5px">REC</button>
+        `;
+        recButton.onclick = () => capturer ? stopRec() : startRec();
+
+        function startRec() {
+            capturer = new CCapture( {
+                framerate: 60,
+                format: 'webm'
+            });
+            capturer.start();
+            recButton.innerHTML =  'STOP'
+        }
+
+        function stopRec(){
+            capturer.stop();
+            capturer.save(blob => {
+                let a = document.createElement("a");
+                let url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = 'video.webm';
+                a.click();
+                URL.revokeObjectURL(url);
+                capturer = null;
+                recButton.innerHTML = 'REC'
+            });
+        }
+    }
 
     this.newSize = (w, h) => {
         this.resolution([canvas.width = w, canvas.height = h]);
@@ -46,6 +83,7 @@ function RGBA(mainCode, props) {
             this.time(t/1000);
             frameCallbacks.forEach(cb => cb(t));
             gl.drawArrays(gl.TRIANGLES, 0, 3);
+            capturer && capturer.capture(canvas);
             requestAnimationFrame(drawFrame);
         };
         requestAnimationFrame(drawFrame);

@@ -16,6 +16,7 @@
                 gl_FragColor = mix(c, c1, sign(v - 0.5)/2.0 + 0.5);
             }
         `, {
+            record:true,
             uniforms: {
                 val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50))
             },
