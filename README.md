@@ -16,6 +16,10 @@
 
 
 ---
+0.0.5
+
+- added possibility to record video {record:true}
+
 
 ## features
 
