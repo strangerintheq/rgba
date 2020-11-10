@@ -18,7 +18,9 @@
 ---
 0.0.5
 
-- added possibility to record video {record:true}
+- added possibility to record video 
+
+        RGBA(`...`, {record: true})
 
 
 ## features
