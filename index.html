@@ -2,29 +2,27 @@
 <html lang="en">
 <body>
     <script src="rgba.js"></script>
+    <script src="svg.js"></script>
+<!--    <script src="record.js"></script>-->
     <script>
         let to = 1;
         RGBA(`
-            vec2 uv = gl_FragCoord.xy / resolution;
-            vec4 c0 = texture2D(tex[0], uv);
-            float v = clamp(c0.r + val - 0.5, 0.0, 1.0);
-            if (abs(v - 0.5) < 0.01 + 0.02*c0.a) {
-                gl_FragColor = vec4(c0.rgb, 1.0);
-            } else {
-                vec4 c1 = texture2D(tex[1], uv);
-                vec4 c = vec4(vec3(dot(c1.rgb, vec3(0.299, 0.587, 0.114))), 1.);
-                gl_FragColor = mix(c, c1, sign(v - 0.5)/2.0 + 0.5);
-            }
+    vec2 uv = gl_FragCoord.xy / resolution;1
+    vec4 c0 = texture2D(tex[0], uv);
+    float v = clamp(c0.r + val - 0.5, 0.0, 1.0);
+    if (abs(v - 0.5) < 0.01 + 0.02*c0.a) {
+        gl_FragColor = vec4(c0.rgb, 1.0);
+    } else {
+        vec4 c1 = texture2D(tex[1], uv);
+        vec4 c = vec4(vec3(dot(c1.rgb, vec3(0.299, 0.587, 0.114))), 1.);
+        gl_FragColor = mix(c, c1, sign(v - 0.5)/2.0 + 0.5);
+    }
         `, {
-            record:true,
             uniforms: {
                 val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50))
             },
             textures: [
-                `<svg width="${innerWidth}px" height="${innerHeight}px">
-                    <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="13" /></filter>
-                    <circle r="5000" filter="url(#n)"></circle>
-                </svg>`,
+                svgNoise(innerWidth, innerHeight),
                 `https://picsum.photos/id/155/${innerWidth}/${innerHeight}`,
             ]
         });

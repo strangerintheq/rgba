@@ -1,4 +1,5 @@
 function RGBA(mainCode, props) {
+
     // shaders
     let config = prepareConfig(props);
     let canvas = config.target || document.createElement('canvas');
@@ -18,72 +19,38 @@ function RGBA(mainCode, props) {
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, triangle, gl.STATIC_DRAW);
     let vert = gl.getAttribLocation(program, "vert");
-    gl.vertexAttribPointer(vert, 2, gl.FLOAT, 0, 0, 0);
+    gl.vertexAttribPointer(vert, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vert);
 
-    let capturer;
-
-    if (config.record) {
-        const s = document.createElement('script');
-        s.setAttribute('src','https://raw.githack.com/spite/ccapture.js/master/build/CCapture.all.min.js');
-        document.body.append(s);
-        document.body.innerHTML += `
-            <button id="recButton" style="position:fixed;top:5px;right:5px">REC</button>
-        `;
-        recButton.onclick = () => capturer ? stopRec() : startRec();
-
-        function startRec() {
-            capturer = new CCapture( {
-                framerate: 60,
-                format: 'webm'
-            });
-            capturer.start();
-            recButton.innerHTML =  'STOP'
-        }
-
-        function stopRec(){
-            capturer.stop();
-            capturer.save(blob => {
-                let a = document.createElement("a");
-                let url = URL.createObjectURL(blob);
-                a.href = url;
-                a.download = 'video.webm';
-                a.click();
-                URL.revokeObjectURL(url);
-                capturer = null;
-                recButton.innerHTML = 'REC'
-            });
-        }
+    const handleSize = () => {
+        const w = canvas.clientWidth | 0;
+        const h = canvas.clientHeight | 0;
+        if (config.size[0] === w && config.size[1] === h)
+            return;
+        config.size = [canvas.width = w, canvas.height = h];
+        config.width = canvas.width = w;
+        config.height = canvas.height = h;
+        gl.viewport(0, 0, ...config.size);
+        this.resolution(config.size);
     }
-
-    this.newSize = (w, h) => {
-        this.resolution([canvas.width = w, canvas.height = h]);
-        gl.viewport(0, 0, w, h);
-    }
-
-    this.resize = (w, h) => {
-        if (canvas.width === (w|0) && canvas.height === (h|0)) return;
-        this.newSize(w, h)
-    };
 
     if (!config.target) {
-        document.body.append(canvas);
+        document.body.appendChild(canvas);
         if (false === config.fullscreen)
             return
-        document.body.style.margin = 0;
+        canvas.style.width = '100vw';
+        canvas.style.height = '100vh';
+        document.body.style.margin = '0';
         document.body.style.overflow = 'hidden';
-        addEventListener("resize", () => this.resize(innerWidth, innerHeight));
-        this.newSize(innerWidth, innerHeight);
-    } else {
-        this.newSize(canvas.width, canvas.height);
     }
 
     if (false !== config.loop) {
-        let drawFrame = t => {
+        const drawFrame = t => {
+            handleSize();
             this.time(t/1000);
             frameCallbacks.forEach(cb => cb(t));
             gl.drawArrays(gl.TRIANGLES, 0, 3);
-            capturer && capturer.capture(canvas);
+            window.capturer && window.capturer.capture(canvas);
             requestAnimationFrame(drawFrame);
         };
         requestAnimationFrame(drawFrame);
@@ -104,8 +71,8 @@ function RGBA(mainCode, props) {
         let type = detectUniformType(uf, config);
         let setter = gl[`uniform${type.name}`];
         this[uf] = type.isArray ?
-                v => setter.call(gl, loc, ...v) :
-                v => setter.call(gl, loc, v);
+            v => setter.call(gl, loc, ...v) :
+            v => setter.call(gl, loc, v);
         if (!type.isFunc)
             return
         let val;
@@ -149,13 +116,14 @@ function RGBA(mainCode, props) {
 
     function prepareConfig(props) {
         let cfg = props || {};
+        cfg.size = cfg.size || [0,0]
         cfg.mainCode = mainCode;
         cfg.uniforms = cfg.uniforms || {};
         cfg.uniforms.time = '1f';
         cfg.uniforms.resolution = '2f';
         cfg.vertexShader = cfg.vertexShader ||
             `attribute vec2 vert;\nvoid main(void) { gl_Position = vec4(vert, 0.0, 1.0);}`;
-        if (cfg.mainCode.indexOf('void main()') === -1)
+        if (cfg.mainCode.indexOf('void main()') === -1 && cfg.mainCode.indexOf('void main(void)') === -1)
             cfg.mainCode = `\nvoid main() {\n${cfg.mainCode}\n}`;
         if (!cfg.fragmentShader)
             createFragmentShader(cfg);
@@ -170,14 +138,25 @@ function RGBA(mainCode, props) {
         gl.compileShader(id);
         let message = gl.getShaderInfoLog(id);
         if (message || config.debug)
-            console.log(src.split('\n').map(print).join('\n'));
+            src.split('\n').map((line,i) => print(line, i, message))
         if (message)
             throw message;
         gl.attachShader(program, id);
     }
 
-    function print(str, i) {
-        return ("" + (1 + i)).padStart(4, "0") + ": " + str
+    function print(str, i, message) {
+        if (!config.log) {
+            config.log = document.createElement('div');
+            config.log.style.fontFamily = 'Courier New, monospace';
+            document.body.append(config.log);
+            canvas.remove();
+        }
+        let line = 1 + i;
+        let currentLine = line === +message.split(':')[2];
+        let msg = ("" + line).padStart(4, "0") + ': ' + str.split(' ').join('&nbsp;');
+        if (currentLine) msg = '<br>' + message + '<br>' + msg + '<br><br>';
+        config.log.innerHTML += `<div ${currentLine && 'style="background:#900;color:#fff"'}>${msg}</div>`
+
     }
 
     function handleTextures() {
