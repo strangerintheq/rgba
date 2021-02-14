@@ -156,7 +156,6 @@ function RGBA(mainCode, props) {
         let msg = ("" + line).padStart(4, "0") + ': ' + str.split(' ').join('&nbsp;');
         if (currentLine) msg = '<br>' + message + '<br>' + msg + '<br><br>';
         config.log.innerHTML += `<div ${currentLine && 'style="background:#900;color:#fff"'}>${msg}</div>`
-
     }
 
     function handleTextures() {
@@ -178,4 +177,20 @@ function RGBA(mainCode, props) {
             }
         });
     }
+}
+
+function slider(name, value=0.5, min=0, max=1, step= 0.001) {
+    if (!window.gui) document.body.innerHTML = `<div id="gui" 
+        style="right:0;position: fixed;background:#0004;padding:10px"><div>`
+    const id = Math.random().toString(36).substring(2)
+    window.gui.innerHTML += `
+        <label style="color:white">${name}</label>
+        <input style="vertical-align: middle" type=range id=slider_${id} min=${min} max=${max} value=${value} step=${step} >
+        <label id="label_${id}" style="color:white"></label><br>
+    `;
+    return () => {
+        const v = +window['slider_' + id].value;
+        window['label_' + id].innerHTML = v.toFixed(4);
+        return v;
+    };
 }

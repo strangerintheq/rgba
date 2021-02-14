@@ -7,9 +7,9 @@
     <script>
         let to = 1;
         RGBA(`
-    vec2 uv = gl_FragCoord.xy / resolution;1
+    vec2 uv = gl_FragCoord.xy / resolution;
     vec4 c0 = texture2D(tex[0], uv);
-    float v = clamp(c0.r + val - 0.5, 0.0, 1.0);
+    float v = clamp(c0.r + k - 0.5, 0.0, 1.0);
     if (abs(v - 0.5) < 0.01 + 0.02*c0.a) {
         gl_FragColor = vec4(c0.rgb, 1.0);
     } else {
@@ -19,7 +19,8 @@
     }
         `, {
             uniforms: {
-                val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50))
+                val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50)),
+                k: slider("k")
             },
             textures: [
                 svgNoise(innerWidth, innerHeight),
