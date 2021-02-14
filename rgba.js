@@ -181,7 +181,7 @@ function RGBA(mainCode, props) {
 
 function slider(name, value=0.5, min=0, max=1, step= 0.001) {
     if (!window.gui) document.body.innerHTML = `<div id="gui" 
-        style="right:0;position: fixed;background:#0004;padding:10px"><div>`
+        style="right:0;position: fixed;background:#0004;padding:10px;text-align: right"><div>`
     const id = Math.random().toString(36).substring(2)
     window.gui.innerHTML += `
         <label style="color:white">${name}</label>
