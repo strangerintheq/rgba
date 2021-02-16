@@ -16,11 +16,31 @@
 
 
 ---
-0.0.5
+
+
+v0.0.6 - v0.0.8
+
+- added default gui sliders with following syntax
+ 
+       {
+           uniforms: {
+               myUniform: slider("myUniform", value, min, max, step)
+           }
+       }
+
+- record module extracted to its own script file, executing when added to page
+
+
+
+
+v0.0.5
 
 - added possibility to record video 
 
         RGBA(`...`, {record: true})
+
+
+
 
 
 ## features
