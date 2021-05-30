@@ -20,7 +20,7 @@
         `, {
             uniforms: {
                 val: old => Math.max(0, Math.min(1, old + (to - 0.5)/50)),
-                k: slider("k")
+                k: slider("kek",0,-1,1)
             },
             textures: [
                 svgNoise(innerWidth, innerHeight),

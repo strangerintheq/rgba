@@ -1,9 +1,9 @@
 function RGBA(mainCode, props) {
-
+    const rgba = this;
     // shaders
     let config = prepareConfig(props);
     let canvas = config.target || document.createElement('canvas');
-    let gl = this.gl = canvas.getContext("webgl");
+    let gl = rgba.gl = canvas.getContext("webgl");
     let program = gl.createProgram();
     [config.vertexShader, config.fragmentShader].forEach(createShader);
     gl.linkProgram(program);
@@ -31,7 +31,7 @@ function RGBA(mainCode, props) {
         config.width = canvas.width = w;
         config.height = canvas.height = h;
         gl.viewport(0, 0, ...config.size);
-        this.resolution(config.size);
+        rgba.resolution(config.size);
     }
 
     if (!config.target) {
@@ -47,7 +47,7 @@ function RGBA(mainCode, props) {
     if (false !== config.loop) {
         const drawFrame = t => {
             handleSize();
-            this.time(t/1000);
+            rgba.time(t/1000);
             frameCallbacks.forEach(cb => cb(t));
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             window.capturer && window.capturer.capture(canvas);
@@ -70,7 +70,7 @@ function RGBA(mainCode, props) {
         let loc = gl.getUniformLocation(program, uf);
         let type = detectUniformType(uf, config);
         let setter = gl[`uniform${type.name}`];
-        this[uf] = type.isArray ?
+        rgba[uf] = type.isArray ?
             v => setter.call(gl, loc, ...v) :
             v => setter.call(gl, loc, v);
         if (!type.isFunc)
@@ -78,9 +78,9 @@ function RGBA(mainCode, props) {
         let val;
         frameCallbacks.push(t => {
             let newVal = config.uniforms[uf](val, t);
-            this[uf](val = newVal); // todo compare values
+            rgba[uf](val = newVal); // todo compare values
         });
-        this[uf](val = config.uniforms[uf](0));
+        rgba[uf](val = config.uniforms[uf](0));
     }
 
     function svgSupport(url) {
@@ -186,11 +186,13 @@ function slider(name, value=0.5, min=0, max=1, step= 0.001) {
     window.gui.innerHTML += `
         <label style="color:white">${name}</label>
         <input style="vertical-align: middle" type=range id=slider_${id} min=${min} max=${max} value=${value} step=${step} >
-        <label id="label_${id}" style="color:white"></label><br>
+        <label id="label_${id}" style=" color:white; width: 90px; display:inline-block"></label><br>
     `;
     return () => {
         const v = +window['slider_' + id].value;
-        window['label_' + id].innerHTML = v.toFixed(4);
+        const newValue = v.toFixed(8);
+        if (window['label_' + id].innerHTML !== newValue)
+            window['label_' + id].innerHTML = newValue;
         return v;
     };
 }
