@@ -22,7 +22,7 @@ function RGBA(mainCode, props) {
     gl.vertexAttribPointer(vert, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vert);
 
-    const handleSize = () => {
+    rgba.handleSize = () => {
         const w = canvas.clientWidth | 0;
         const h = canvas.clientHeight | 0;
         if (config.size[0] === w && config.size[1] === h)
@@ -32,6 +32,12 @@ function RGBA(mainCode, props) {
         config.height = canvas.height = h;
         gl.viewport(0, 0, ...config.size);
         rgba.resolution(config.size);
+    }
+
+    rgba.drawCall = (t = 0) => {
+        rgba.time(t/1000);
+        frameCallbacks.forEach(cb => cb(t));
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
     if (!config.target) {
@@ -46,10 +52,8 @@ function RGBA(mainCode, props) {
 
     if (false !== config.loop) {
         const drawFrame = t => {
-            handleSize();
-            rgba.time(t/1000);
-            frameCallbacks.forEach(cb => cb(t));
-            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            rgba.handleSize();
+            rgba.drawCall(t);
             window.capturer && window.capturer.capture(canvas);
             requestAnimationFrame(drawFrame);
         };
